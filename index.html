@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS収益シミュレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.jsライブラリの読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Interフォントの読み込み */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #f7fafc;
+        }
+        /* 数値入力の矢印を非表示にする */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .summary-card {
+            @apply bg-white p-6 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg;
+        }
+        .summary-title {
+            @apply text-sm font-medium text-gray-500 uppercase tracking-wider;
+        }
+        .summary-value {
+            @apply text-3xl font-bold text-blue-700 mt-2;
+        }
+        .summary-impact {
+            @apply text-3xl font-bold text-green-700 mt-2;
+        }
+        th, td {
+            @apply px-4 py-3 text-sm;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">SaaS収益シミュレーター</h1>
+
+        <!-- 1. ビジョン・ダッシュボード (サマリー) -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-bold text-blue-700 mb-4">ビジョン・ダッシュボード (24ヶ月後の姿)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- ビジネスの成長 -->
+                <div class="summary-card col-span-1 md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <h3 class="summary-title">累計顧客数 (ケーキ店)</h3>
+                        <p id="summary-total-stores" class="summary-value">0 店舗</p>
+                    </div>
+                    <div>
+                        <h3 class="summary-title">年間経常収益 (ARR)</h3>
+                        <p id="summary-arr" class="summary-value">¥0</p>
+                    </div>
+                    <div>
+                        <h3 class="summary-title">累計営業利益</h3>
+                        <p id="summary-total-profit" class="summary-value">¥0</p>
+                    </div>
+                </div>
+                <!-- 世界観の実現 (インパクト) -->
+                <div class="summary-card col-span-1 md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <h3 class="summary-title">ケーキ店への貢献 (削減時間)</h3>
+                        <p id="summary-total-time-saved" class="summary-impact">0 時間</p>
+                    </div>
+                    <div>
+                        <h3 class="summary-title">ケーキ店への貢献 (分配利益)</h3>
+                        <p id="summary-total-profit-shared" class="summary-impact">¥0</p>
+                    </div>
+                    <div>
+                        <h3 class="summary-title">届けた「感動」の総数</h3>
+                        <p id="summary-total-options-sold" class="summary-impact">0 回</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. ビジネス成長グラフ -->
+        <section class="mb-8 bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-blue-700 mb-6">ビジネス成長グラフ (24ヶ月)</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3 text-center">累計顧客数</h3>
+                    <canvas id="storesChart"></canvas>
+                </div>
+                <div class="lg:col-span-1">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3 text-center">年間経常収益 (ARR)</h3>
+                    <canvas id="arrChart"></canvas>
+                </div>
+                <div class="lg:col-span-1">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3 text-center">累計営業利益</h3>
+                    <canvas id="profitChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. コントロールパネル (前提条件) -->
+        <section class="mb-8 bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-blue-700 mb-6 border-b pb-3">コントロールパネル (前提条件)</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
+                <!-- 顧客獲得 (S&M) -->
+                <div class="space-y-4 p-4 bg-gray-50 rounded-lg border">
+                    <h3 class="text-lg font-semibold text-gray-800">① 顧客獲得 (S&M)</h3>
+                    <div>
+                        <label for="ad-cost-monthly" class="block text-sm font-medium text-gray-700">月間広告費</label>
+                        <input type="number" id="ad-cost-monthly" value="400000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="cac" class="block text-sm font-medium text-gray-700">1顧客獲得単価 (CAC)</label>
+                        <input type="number" id="cac" value="80000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+
+                <!-- 顧客モデル -->
+                <div class="space-y-4 p-4 bg-gray-50 rounded-lg border">
+                    <h3 class="text-lg font-semibold text-gray-800">② 顧客モデル</h3>
+                    <div>
+                        <label for="free-plan-rate" class="block text-sm font-medium text-gray-700">フリープラン比率 (%)</label>
+                        <input type="number" id="free-plan-rate" value="80" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="churn-rate" class="block text-sm font-medium text-gray-700">月次解約率 (%)</label>
+                        <input type="number" id="churn-rate" value="3" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+
+                <!-- 収益モデル (店舗利用) -->
+                <div class="space-y-4 p-4 bg-gray-50 rounded-lg border">
+                    <h3 class="text-lg font-semibold text-gray-800">③ 収益モデル (店舗利用)</h3>
+                    <div>
+                        <label for="bookings-free" class="block text-sm font-medium text-gray-700">フリー店の予約件数/月</label>
+                        <input type="number" id="bookings-free" value="10" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="bookings-prem" class="block text-sm font-medium text-gray-700">プレミアム店の予約件数/月</label>
+                        <input type="number" id="bookings-prem" value="70" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+
+                <!-- 収益モデル (料金体系) -->
+                <div class="space-y-4 p-4 bg-gray-50 rounded-lg border">
+                    <h3 class="text-lg font-semibold text-gray-800">④ 収益モデル (料金体系)</h3>
+                    <div>
+                        <label for="prem-cost-monthly" class="block text-sm font-medium text-gray-700">プレミアムプラン月額</label>
+                        <input type="number" id="prem-cost-monthly" value="20000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="fee-rate-free" class="block text-sm font-medium text-gray-700">フリープラン手数料率 (%)</label>
+                        <input type="number" id="fee-rate-free" value="11.6" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="fee-rate-prem" class="block text-sm font-medium text-gray-700">プレミアムプラン手数料率 (%)</label>
+                        <input type="number" id="fee-rate-prem" value="5.0" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+
+                <!-- 収益モデル (デジタルオプション) -->
+                <div class="space-y-4 p-4 bg-gray-50 rounded-lg border">
+                    <h3 class="text-lg font-semibold text-gray-800">⑤ 収益モデル (オプション)</h3>
+                    <div>
+                        <label for="opt-purchase-rate" class="block text-sm font-medium text-gray-700">オプション購入率 (%)</label>
+                        <input type="number" id="opt-purchase-rate" value="20" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="opt-price" class="block text-sm font-medium text-gray-700">オプション平均単価</label>
+                        <input type="number" id="opt-price" value="500" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="opt-share-free" class="block text-sm font-medium text-gray-700">フリー店 利益配分率 (%)</label>
+                        <input type="number" id="opt-share-free" value="25" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                     <div>
+                        <label for="opt-share-prem" class="block text-sm font-medium text-gray-700">プレミアム店 利益配分率 (%)</label>
+                        <input type="number" id="opt-share-prem" value="50" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+
+                <!-- コストモデル -->
+                <div class="space-y-4 p-4 bg-gray-50 rounded-lg border">
+                    <h3 class="text-lg font-semibold text-gray-800">⑥ コストモデル</h3>
+                    <div>
+                        <label for="engineer-cost-monthly" class="block text-sm font-medium text-gray-700">エンジニアチーム費用/月</label>
+                        <input type="number" id="engineer-cost-monthly" value="1000000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="server-cost-per-store" class="block text-sm font-medium text-gray-700">サーバー代/店舗・月</label>
+                        <input type="number" id="server-cost-per-store" value="150" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="opt-cost" class="block text-sm font-medium text-gray-700">オプション原価/件</label>
+                        <input type="number" id="opt-cost" value="50" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="save-time-per-booking" class="block text-sm font-medium text-gray-700">予約1件あたりの削減時間(分)</label>
+                        <input type="number" id="save-time-per-booking" value="10" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="cake-price" class="block text-sm font-medium text-gray-700">ケーキ平均単価 (参考値)</label>
+                        <input type="number" id="cake-price" value="4000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 月次P&L (損益計算) テーブル -->
+        <section class="mb-8 bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-blue-700 mb-6 border-b pb-3">月次P&L（損益計算） (24ヶ月)</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="text-left">月</th>
+                            <th class="text-left">新規顧客</th>
+                            <th class="text-left">解約顧客</th>
+                            <th class="text-left">累計顧客 (ﾌﾟﾚﾐｱﾑ)</th>
+                            <th class="text-left">累計顧客 (ﾌﾘｰ)</th>
+                            <th class="text-left">売上 (月額)</th>
+                            <th class="text-left">売上 (手数料)</th>
+                            <th class="text-left">売上 (ｵﾌﾟｼｮﾝ利益)</th>
+                            <th class="text-left">売上合計</th>
+                            <th class="text-left text-red-600">コスト (顧客獲得)</th>
+                            <th class="text-left text-red-600">コスト (エンジニア)</th>
+                            <th class="text-left text-red-600">コスト (その他変動)</th>
+                            <th class="text-left text-red-600">コスト合計</th>
+                            <th class="text-left">月次利益</th>
+                            <th class="text-left">累計利益</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pnl-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- JSで24ヶ月分生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- グローバル変数 ---
+            let storesChartInstance = null;
+            let arrChartInstance = null;
+            let profitChartInstance = null;
+
+            // --- 入力IDの管理 ---
+            const inputs = [
+                'ad-cost-monthly', 'cac', 'free-plan-rate', 'churn-rate', 
+                'bookings-free', 'bookings-prem', 'prem-cost-monthly', 
+                'fee-rate-free', 'fee-rate-prem', 'opt-purchase-rate', 
+                'opt-price', 'opt-share-free', 'opt-share-prem', 
+                'engineer-cost-monthly', 'server-cost-per-store', 'opt-cost',
+                'save-time-per-booking', 'cake-price'
+            ];
+
+            // --- ヘルパー関数 ---
+            const $ = (id) => document.getElementById(id);
+            const getNum = (id) => parseFloat($(id).value) || 0;
+            const set = (id, value) => $(id).innerText = value;
+
+            const formatYen = (val) => {
+                const value = Math.round(val);
+                return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(value);
+            };
+            const formatNum = (val, digits = 0) => {
+                const num = parseFloat(val);
+                if (isNaN(num)) return '0.0';
+                return num.toFixed(digits);
+            };
+            const formatTime = (minutes) => {
+                const mins = Math.round(minutes);
+                const h = Math.floor(mins / 60);
+                return `${new Intl.NumberFormat('ja-JP').format(h)} 時間`;
+            };
+
+            // --- グラフ初期化 ---
+            function initCharts() {
+                const createChart = (ctxId) => {
+                    const ctx = document.getElementById(ctxId).getContext('2d');
+                    return new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: [], // 1〜24ヶ月
+                            datasets: [{
+                                label: '実績',
+                                data: [], 
+                                borderColor: 'rgb(59, 130, 246)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.1,
+                                fill: true,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (context) => formatNum(context.raw, 0)
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    ticks: {
+                                        callback: (value) => (value >= 1000 || value <= -1000) ? `${value/1000}k` : value
+                                    }
+                                }
+                            }
+                        }
+                    });
+                };
+                
+                storesChartInstance = createChart('storesChart');
+                arrChartInstance = createChart('arrChart');
+                profitChartInstance = createChart('profitChart');
+                
+                // 利益グラフのみカスタマイズ
+                profitChartInstance.options.plugins.tooltip.callbacks.label = (context) => formatYen(context.raw);
+                profitChartInstance.options.scales.y.ticks.callback = (value) => formatYen(value);
+            }
+
+            // --- メイン計算ロジック ---
+            function calculateAll() {
+                // 1. 全ての前提条件を取得
+                const adCostMonthly = getNum('ad-cost-monthly');
+                const cac = getNum('cac');
+                const freePlanRate = getNum('free-plan-rate') / 100;
+                const premPlanRate = 1 - freePlanRate;
+                const churnRate = getNum('churn-rate') / 100;
+                
+                const bookingsFree = getNum('bookings-free');
+                const bookingsPrem = getNum('bookings-prem');
+                
+                const premCostMonthly = getNum('prem-cost-monthly');
+                const feeRateFree = getNum('fee-rate-free') / 100;
+                const feeRatePrem = getNum('fee-rate-prem') / 100;
+                const cakePrice = getNum('cake-price');
+                
+                const optPurchaseRate = getNum('opt-purchase-rate') / 100;
+                const optPrice = getNum('opt-price');
+                const optShareFree = getNum('opt-share-free') / 100;
+                const optSharePrem = getNum('opt-share-prem') / 100;
+                const optCost = getNum('opt-cost');
+                
+                const engineerCostMonthly = getNum('engineer-cost-monthly');
+                const serverCostPerStore = getNum('server-cost-per-store');
+                const saveTimePerBooking = getNum('save-time-per-booking');
+
+                // 2. 月次シミュレーション (24ヶ月)
+                let totalStoresFree = 0;
+                let totalStoresPrem = 0;
+                let cumulativeProfit = 0;
+                let totalTimeSaved = 0;
+                let totalProfitShared = 0;
+                let totalOptionsSold = 0;
+                
+                const tableBody = $('pnl-table-body');
+                tableBody.innerHTML = '';
+                
+                const chartLabels = [];
+                const storesData = [];
+                const arrData = [];
+                const profitData = [];
+
+                for (let month = 1; month <= 24; month++) {
+                    // --- 顧客数の計算 ---
+                    const newStores = (cac > 0) ? (adCostMonthly / cac) : 0;
+                    const newStoresFree = newStores * freePlanRate;
+                    const newStoresPrem = newStores * premPlanRate;
+                    
+                    const churnedStoresFree = totalStoresFree * churnRate;
+                    const churnedStoresPrem = totalStoresPrem * churnRate;
+                    
+                    totalStoresFree = totalStoresFree - churnedStoresFree + newStoresFree;
+                    totalStoresPrem = totalStoresPrem - churnedStoresPrem + newStoresPrem;
+                    const totalStores = totalStoresFree + totalStoresPrem;
+
+                    // --- 売上の計算 ---
+                    // ① プレミアム月額売上
+                    const revenueMonthlyFee = totalStoresPrem * premCostMonthly;
+                    
+                    // ② 手数料売上
+                    const salesFree = totalStoresFree * bookingsFree * cakePrice;
+                    const salesPrem = totalStoresPrem * bookingsPrem * cakePrice;
+                    const revenueCommission = (salesFree * feeRateFree) + (salesPrem * feeRatePrem);
+                    
+                    // ③ オプション利益売上 (弊社の利益)
+                    const totalBookingsFree = totalStoresFree * bookingsFree;
+                    const totalBookingsPrem = totalStoresPrem * bookingsPrem;
+                    const totalBookings = totalBookingsFree + totalBookingsPrem;
+                    const totalOptionsSoldMonthly = totalBookings * optPurchaseRate;
+                    
+                    const optRevenue = totalOptionsSoldMonthly * optPrice;
+                    const optTotalCost = totalOptionsSoldMonthly * optCost;
+                    
+                    const optShareToFreeStores = (totalBookingsFree * optPurchaseRate) * (optPrice * optShareFree);
+                    const optShareToPremStores = (totalBookingsPrem * optPurchaseRate) * (optPrice * optSharePrem);
+                    const optTotalShare = optShareToFreeStores + optShareToPremStores;
+
+                    const revenueOptionProfit = optRevenue - optTotalCost - optTotalShare;
+                    
+                    const totalRevenue = revenueMonthlyFee + revenueCommission + revenueOptionProfit;
+
+                    // --- コストの計算 ---
+                    const costAcquisition = newStores * cac; // 広告費と同じはず
+                    const costEngineer = engineerCostMonthly;
+                    const costVariable = (totalStores * serverCostPerStore) + optTotalCost;
+                    const totalCost = costAcquisition + costEngineer + costVariable;
+
+                    // --- 利益の計算 ---
+                    const monthlyProfit = totalRevenue - totalCost;
+                    cumulativeProfit += monthlyProfit;
+                    
+                    // --- インパクトの計算 ---
+                    totalTimeSaved += totalBookings * saveTimePerBooking;
+                    totalProfitShared += optTotalShare;
+                    totalOptionsSold += totalOptionsSoldMonthly;
+                    
+                    // --- グラフ用データ ---
+                    chartLabels.push(`M${month}`);
+                    storesData.push(totalStores);
+                    arrData.push(totalRevenue * 12); // 年間経常収益 (ARR)
+                    profitData.push(cumulativeProfit);
+
+                    // --- テーブル描画 ---
+                    const row = `
+                        <tr>
+                            <td class="font-semibold">${month}</td>
+                            <td>${formatNum(newStores, 1)}</td>
+                            <td>${formatNum(churnedStoresFree + churnedStoresPrem, 1)}</td>
+                            <td class="font-semibold">${formatNum(totalStoresPrem, 0)}</td>
+                            <td class="font-semibold">${formatNum(totalStoresFree, 0)}</td>
+                            <td>${formatYen(revenueMonthlyFee)}</td>
+                            <td>${formatYen(revenueCommission)}</td>
+                            <td>${formatYen(revenueOptionProfit)}</td>
+                            <td class="font-semibold bg-blue-50">${formatYen(totalRevenue)}</td>
+                            <td class="text-red-600">${formatYen(costAcquisition)}</td>
+                            <td class="text-red-600">${formatYen(costEngineer)}</td>
+                            <td class="text-red-600">${formatYen(costVariable)}</td>
+                            <td class="font-semibold bg-red-50">${formatYen(totalCost)}</td>
+                            <td class="font-semibold ${monthlyProfit > 0 ? 'text-green-600' : 'text-red-600'}">${formatYen(monthlyProfit)}</td>
+                            <td class="font-semibold ${cumulativeProfit > 0 ? 'text-green-700' : 'text-red-700'}">${formatYen(cumulativeProfit)}</td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+
+                    // 最終月(24ヶ月目)のデータをダッシュボードに反映
+                    if (month === 24) {
+                        set('summary-total-stores', `${formatNum(totalStores, 0)} 店舗`);
+                        set('summary-arr', formatYen(totalRevenue * 12));
+                        set('summary-total-profit', formatYen(cumulativeProfit));
+                        
+                        set('summary-total-time-saved', formatTime(totalTimeSaved));
+                        set('summary-total-profit-shared', formatYen(totalProfitShared));
+                        set('summary-total-options-sold', `${formatNum(totalOptionsSold, 0)} 回`);
+                    }
+                }
+                
+                // 3. グラフ更新
+                const updateChart = (chart, labels, data) => {
+                    chart.data.labels = labels;
+                    chart.data.datasets[0].data = data;
+                    chart.update();
+                };
+                updateChart(storesChartInstance, chartLabels, storesData);
+                updateChart(arrChartInstance, chartLabels, arrData);
+                updateChart(profitChartInstance, chartLabels, profitData);
+            }
+
+            // --- 初期化実行 ---
+            initCharts();
+            
+            // --- イベントリスナー設定 ---
+            inputs.forEach(id => {
+                const el = $(id);
+                if (el) {
+                    el.addEventListener('input', calculateAll);
+                }
+            });
+            
+            // 初回計算
+            calculateAll();
+        });
+    </script>
+</body>
+</html>
