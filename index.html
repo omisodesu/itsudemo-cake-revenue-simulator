@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaaS収益シミュレーター</title>
+    <title>SaaS収益シミュレーター (v2)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.jsライブラリの読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -37,6 +37,10 @@
         }
         th, td {
             @apply px-4 py-3 text-sm;
+        }
+        /* オプションテーブルの入力欄を小さくする */
+        .opt-input {
+            @apply mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm;
         }
     </style>
 </head>
@@ -123,6 +127,14 @@
                 <div class="space-y-4 p-4 bg-gray-50 rounded-lg border">
                     <h3 class="text-lg font-semibold text-gray-800">② 顧客モデル</h3>
                     <div>
+                        <label for="initial-stores-free" class="block text-sm font-medium text-gray-700">初期 累計顧客数 (フリー)</label>
+                        <input type="number" id="initial-stores-free" value="0" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="initial-stores-prem" class="block text-sm font-medium text-gray-700">初期 累計顧客数 (プレミアム)</label>
+                        <input type="number" id="initial-stores-prem" value="0" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
                         <label for="free-plan-rate" class="block text-sm font-medium text-gray-700">フリープラン比率 (%)</label>
                         <input type="number" id="free-plan-rate" value="80" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
                     </div>
@@ -143,6 +155,10 @@
                         <label for="bookings-prem" class="block text-sm font-medium text-gray-700">プレミアム店の予約件数/月</label>
                         <input type="number" id="bookings-prem" value="70" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
                     </div>
+                    <div>
+                        <label for="cake-price" class="block text-sm font-medium text-gray-700">ケーキ平均単価 (参考値)</label>
+                        <input type="number" id="cake-price" value="4000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
                 </div>
 
                 <!-- 収益モデル (料金体系) -->
@@ -153,59 +169,58 @@
                         <input type="number" id="prem-cost-monthly" value="20000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
                     </div>
                     <div>
-                        <label for="fee-rate-free" class="block text-sm font-medium text-gray-700">フリープラン手数料率 (%)</label>
-                        <input type="number" id="fee-rate-free" value="11.6" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        <label for="payment-fee-rate" class="block text-sm font-medium text-gray-700">決済手数料率 (%)</label>
+                        <input type="number" id="payment-fee-rate" value="3.6" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" title="決済会社に支払う手数料。売上には計上されません。">
                     </div>
                     <div>
-                        <label for="fee-rate-prem" class="block text-sm font-medium text-gray-700">プレミアムプラン手数料率 (%)</label>
-                        <input type="number" id="fee-rate-prem" value="5.0" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                    </div>
-                </div>
-
-                <!-- 収益モデル (デジタルオプション) -->
-                <div class="space-y-4 p-4 bg-gray-50 rounded-lg border">
-                    <h3 class="text-lg font-semibold text-gray-800">⑤ 収益モデル (オプション)</h3>
-                    <div>
-                        <label for="opt-purchase-rate" class="block text-sm font-medium text-gray-700">オプション購入率 (%)</label>
-                        <input type="number" id="opt-purchase-rate" value="20" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        <label for="service-fee-rate-free" class="block text-sm font-medium text-gray-700">フリー サービス手数料率 (%)</label>
+                        <input type="number" id="service-fee-rate-free" value="8.0" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" title="私たちの売上になる手数料です。">
                     </div>
                     <div>
-                        <label for="opt-price" class="block text-sm font-medium text-gray-700">オプション平均単価</label>
-                        <input type="number" id="opt-price" value="500" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div>
-                        <label for="opt-share-free" class="block text-sm font-medium text-gray-700">フリー店 利益配分率 (%)</label>
-                        <input type="number" id="opt-share-free" value="25" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                    </div>
-                     <div>
-                        <label for="opt-share-prem" class="block text-sm font-medium text-gray-700">プレミアム店 利益配分率 (%)</label>
-                        <input type="number" id="opt-share-prem" value="50" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        <label for="service-fee-rate-prem" class="block text-sm font-medium text-gray-700">プレミアム サービス手数料率 (%)</label>
+                        <input type="number" id="service-fee-rate-prem" value="1.4" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" title="私たちの売上になる手数料です。">
                     </div>
                 </div>
 
                 <!-- コストモデル -->
-                <div class="space-y-4 p-4 bg-gray-50 rounded-lg border">
-                    <h3 class="text-lg font-semibold text-gray-800">⑥ コストモデル</h3>
-                    <div>
-                        <label for="engineer-cost-monthly" class="block text-sm font-medium text-gray-700">エンジニアチーム費用/月</label>
-                        <input type="number" id="engineer-cost-monthly" value="1000000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                <div class="space-y-4 p-4 bg-gray-50 rounded-lg border lg:col-span-2">
+                    <h3 class="text-lg font-semibold text-gray-800">⑤ コストモデル</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="engineer-cost-monthly" class="block text-sm font-medium text-gray-700">エンジニアチーム費用/月</label>
+                            <input type="number" id="engineer-cost-monthly" value="1000000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="server-cost-per-store" class="block text-sm font-medium text-gray-700">サーバー代/店舗・月</label>
+                            <input type="number" id="server-cost-per-store" value="150" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="save-time-per-booking" class="block text-sm font-medium text-gray-700">予約1件あたりの削減時間(分)</label>
+                            <input type="number" id="save-time-per-booking" value="10" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
                     </div>
-                    <div>
-                        <label for="server-cost-per-store" class="block text-sm font-medium text-gray-700">サーバー代/店舗・月</label>
-                        <input type="number" id="server-cost-per-store" value="150" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div>
-                        <label for="opt-cost" class="block text-sm font-medium text-gray-700">オプション原価/件</label>
-                        <input type="number" id="opt-cost" value="50" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div>
-                        <label for="save-time-per-booking" class="block text-sm font-medium text-gray-700">予約1件あたりの削減時間(分)</label>
-                        <input type="number" id="save-time-per-booking" value="10" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div>
-                        <label for="cake-price" class="block text-sm font-medium text-gray-700">ケーキ平均単価 (参考値)</label>
-                        <input type="number" id="cake-price" value="4000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                    </div>
+                </div>
+            </div>
+
+            <!-- 収益モデル (デジタルオプション) -->
+            <div class="mt-8">
+                <h3 class="text-lg font-semibold text-gray-800">⑥ 収益モデル (デジタルオプション)</h3>
+                <div class="overflow-x-auto mt-4">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">オプション名</th>
+                                <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">単価 (¥)</th>
+                                <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">購入率 (%)</th>
+                                <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">ﾌﾘｰ配分 (%)</th>
+                                <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">ﾌﾟﾚﾐｱﾑ配分 (%)</th>
+                                <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">原価 (¥)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="digital-options-body" class="bg-white divide-y divide-gray-200">
+                            <!-- JSで10行生成 -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -252,13 +267,51 @@
 
             // --- 入力IDの管理 ---
             const inputs = [
-                'ad-cost-monthly', 'cac', 'free-plan-rate', 'churn-rate', 
-                'bookings-free', 'bookings-prem', 'prem-cost-monthly', 
-                'fee-rate-free', 'fee-rate-prem', 'opt-purchase-rate', 
-                'opt-price', 'opt-share-free', 'opt-share-prem', 
-                'engineer-cost-monthly', 'server-cost-per-store', 'opt-cost',
-                'save-time-per-booking', 'cake-price'
+                'ad-cost-monthly', 'cac', 'initial-stores-free', 'initial-stores-prem',
+                'free-plan-rate', 'churn-rate', 
+                'bookings-free', 'bookings-prem', 'cake-price', 'prem-cost-monthly', 
+                'payment-fee-rate', 'service-fee-rate-free', 'service-fee-rate-prem',
+                'engineer-cost-monthly', 'server-cost-per-store', 'save-time-per-booking'
             ];
+            
+            // オプション入力IDを動的に追加
+            for (let i = 0; i < 10; i++) {
+                inputs.push(`opt-name-${i}`, `opt-price-${i}`, `opt-rate-${i}`, `opt-shareFree-${i}`, `opt-sharePrem-${i}`, `opt-cost-${i}`);
+            }
+            
+            // --- 初期データ ---
+            const initialDigitalOptions = [
+                { name: 'バースデイソング', price: 500, rate: 20, shareFree: 25, sharePrem: 50, cost: 50 },
+                { name: '手紙生成', price: 300, rate: 0, shareFree: 25, sharePrem: 50, cost: 20 },
+                { name: '動画生成', price: 1000, rate: 0, shareFree: 25, sharePrem: 50, cost: 100 },
+                { name: '(オプション4)', price: 0, rate: 0, shareFree: 25, sharePrem: 50, cost: 0 },
+                { name: '(オプション5)', price: 0, rate: 0, shareFree: 25, sharePrem: 50, cost: 0 },
+                { name: '(オプション6)', price: 0, rate: 0, shareFree: 25, sharePrem: 50, cost: 0 },
+                { name: '(オプション7)', price: 0, rate: 0, shareFree: 25, sharePrem: 50, cost: 0 },
+                { name: '(オプション8)', price: 0, rate: 0, shareFree: 25, sharePrem: 50, cost: 0 },
+                { name: '(オプション9)', price: 0, rate: 0, shareFree: 25, sharePrem: 50, cost: 0 },
+                { name: '(オプション10)', price: 0, rate: 0, shareFree: 25, sharePrem: 50, cost: 0 },
+            ];
+
+            // --- UI構築 ---
+            function setupUI() {
+                const digitalOptionsBody = document.getElementById('digital-options-body');
+                digitalOptionsBody.innerHTML = '';
+                for (let i = 0; i < 10; i++) {
+                    const opt = initialDigitalOptions[i];
+                    const row = `
+                        <tr>
+                            <td class="px-2 py-2"><input type="text" value="${opt.name}" class="opt-input" id="opt-name-${i}"></td>
+                            <td class="px-2 py-2"><input type="number" value="${opt.price}" class="opt-input" id="opt-price-${i}"></td>
+                            <td class="px-2 py-2"><input type="number" value="${opt.rate}" class="opt-input" id="opt-rate-${i}"></td>
+                            <td class="px-2 py-2"><input type="number" value="${opt.shareFree}" class="opt-input" id="opt-shareFree-${i}"></td>
+                            <td class="px-2 py-2"><input type="number" value="${opt.sharePrem}" class="opt-input" id="opt-sharePrem-${i}"></td>
+                            <td class="px-2 py-2"><input type="number" value="${opt.cost}" class="opt-input" id="opt-cost-${i}"></td>
+                        </tr>
+                    `;
+                    digitalOptionsBody.innerHTML += row;
+                }
+            }
 
             // --- ヘルパー関数 ---
             const $ = (id) => document.getElementById(id);
@@ -332,31 +385,39 @@
                 // 1. 全ての前提条件を取得
                 const adCostMonthly = getNum('ad-cost-monthly');
                 const cac = getNum('cac');
+                const initialStoresFree = getNum('initial-stores-free');
+                const initialStoresPrem = getNum('initial-stores-prem');
                 const freePlanRate = getNum('free-plan-rate') / 100;
                 const premPlanRate = 1 - freePlanRate;
                 const churnRate = getNum('churn-rate') / 100;
                 
                 const bookingsFree = getNum('bookings-free');
                 const bookingsPrem = getNum('bookings-prem');
-                
-                const premCostMonthly = getNum('prem-cost-monthly');
-                const feeRateFree = getNum('fee-rate-free') / 100;
-                const feeRatePrem = getNum('fee-rate-prem') / 100;
                 const cakePrice = getNum('cake-price');
                 
-                const optPurchaseRate = getNum('opt-purchase-rate') / 100;
-                const optPrice = getNum('opt-price');
-                const optShareFree = getNum('opt-share-free') / 100;
-                const optSharePrem = getNum('opt-share-prem') / 100;
-                const optCost = getNum('opt-cost');
+                const premCostMonthly = getNum('prem-cost-monthly');
+                // const paymentFeeRate = getNum('payment-fee-rate') / 100; // 売上に計上しない
+                const serviceFeeRateFree = getNum('service-fee-rate-free') / 100;
+                const serviceFeeRatePrem = getNum('service-fee-rate-prem') / 100;
+
+                const digitalOptions = [];
+                for (let i = 0; i < 10; i++) {
+                    digitalOptions.push({
+                        price: getNum(`opt-price-${i}`),
+                        rate: getNum(`opt-rate-${i}`) / 100,
+                        shareFree: getNum(`opt-shareFree-${i}`) / 100,
+                        sharePrem: getNum(`opt-sharePrem-${i}`) / 100,
+                        cost: getNum(`opt-cost-${i}`)
+                    });
+                }
                 
                 const engineerCostMonthly = getNum('engineer-cost-monthly');
                 const serverCostPerStore = getNum('server-cost-per-store');
                 const saveTimePerBooking = getNum('save-time-per-booking');
 
                 // 2. 月次シミュレーション (24ヶ月)
-                let totalStoresFree = 0;
-                let totalStoresPrem = 0;
+                let totalStoresFree = initialStoresFree;
+                let totalStoresPrem = initialStoresPrem;
                 let cumulativeProfit = 0;
                 let totalTimeSaved = 0;
                 let totalProfitShared = 0;
@@ -387,32 +448,47 @@
                     // ① プレミアム月額売上
                     const revenueMonthlyFee = totalStoresPrem * premCostMonthly;
                     
-                    // ② 手数料売上
+                    // ② 手数料売上 (純額計上)
                     const salesFree = totalStoresFree * bookingsFree * cakePrice;
                     const salesPrem = totalStoresPrem * bookingsPrem * cakePrice;
-                    const revenueCommission = (salesFree * feeRateFree) + (salesPrem * feeRatePrem);
+                    const revenueCommission = (salesFree * serviceFeeRateFree) + (salesPrem * serviceFeeRatePrem);
                     
                     // ③ オプション利益売上 (弊社の利益)
                     const totalBookingsFree = totalStoresFree * bookingsFree;
                     const totalBookingsPrem = totalStoresPrem * bookingsPrem;
-                    const totalBookings = totalBookingsFree + totalBookingsPrem;
-                    const totalOptionsSoldMonthly = totalBookings * optPurchaseRate;
                     
-                    const optRevenue = totalOptionsSoldMonthly * optPrice;
-                    const optTotalCost = totalOptionsSoldMonthly * optCost;
-                    
-                    const optShareToFreeStores = (totalBookingsFree * optPurchaseRate) * (optPrice * optShareFree);
-                    const optShareToPremStores = (totalBookingsPrem * optPurchaseRate) * (optPrice * optSharePrem);
-                    const optTotalShare = optShareToFreeStores + optShareToPremStores;
+                    let revenueOptionProfit = 0;
+                    let optTotalCost = 0;
+                    let optTotalShare = 0;
+                    let totalOptionsSoldMonthly = 0;
 
-                    const revenueOptionProfit = optRevenue - optTotalCost - optTotalShare;
+                    digitalOptions.forEach(opt => {
+                        if (opt.price > 0 && opt.rate > 0) {
+                            const optionsSoldFree = totalBookingsFree * opt.rate;
+                            const optionsSoldPrem = totalBookingsPrem * opt.rate;
+                            const optionsSoldMonthly = optionsSoldFree + optionsSoldPrem;
+                            
+                            const optRevenue = optionsSoldMonthly * opt.price;
+                            const optCost = optionsSoldMonthly * opt.cost;
+                            
+                            const shareToFree = optionsSoldFree * (opt.price * opt.shareFree);
+                            const shareToPrem = optionsSoldPrem * (opt.price * opt.sharePrem);
+                            const shareTotal = shareToFree + shareToPrem;
+
+                            revenueOptionProfit += (optRevenue - optCost - shareTotal);
+                            optTotalCost += optCost;
+                            optTotalShare += shareTotal;
+                            totalOptionsSoldMonthly += optionsSoldMonthly;
+                        }
+                    });
                     
                     const totalRevenue = revenueMonthlyFee + revenueCommission + revenueOptionProfit;
 
                     // --- コストの計算 ---
                     const costAcquisition = newStores * cac; // 広告費と同じはず
                     const costEngineer = engineerCostMonthly;
-                    const costVariable = (totalStores * serverCostPerStore) + optTotalCost;
+                    // オプション原価は売上計算時にすでに引かれているため、ここではサーバー代のみ
+                    const costVariable = (totalStores * serverCostPerStore);
                     const totalCost = costAcquisition + costEngineer + costVariable;
 
                     // --- 利益の計算 ---
@@ -420,6 +496,7 @@
                     cumulativeProfit += monthlyProfit;
                     
                     // --- インパクトの計算 ---
+                    const totalBookings = totalBookingsFree + totalBookingsPrem;
                     totalTimeSaved += totalBookings * saveTimePerBooking;
                     totalProfitShared += optTotalShare;
                     totalOptionsSold += totalOptionsSoldMonthly;
@@ -476,6 +553,7 @@
             }
 
             // --- 初期化実行 ---
+            setupUI();
             initCharts();
             
             // --- イベントリスナー設定 ---
@@ -492,3 +570,4 @@
     </script>
 </body>
 </html>
+
